@@ -32,7 +32,7 @@ if opt.vis_fast:
     from fn import vis_frame_fast as vis_frame
 else:
     from fn import vis_frame
-
+import zmq
 
 class WebcamLoader:
     def __init__(self, webcam, batchSize=1, queueSize=256):
@@ -374,7 +374,11 @@ class DataWriter:
         if opt.save_img:
             if not os.path.exists(opt.outputpath + '/vis'):
                 os.mkdir(opt.outputpath + '/vis')
-
+        self.ctx = zmq.Context()
+        self.sock = self.ctx.socket(zmq.PUB)
+        self.sock.bind('tcp://*:55113')
+        # self.sock.bind('tcp://192.168.11.2:55113')
+        
     def start(self):
         # start a thread to read frames from the file video stream
         t = Thread(target=self.update, args=())
@@ -416,6 +420,7 @@ class DataWriter:
                         'imgname': im_name,
                         'result': result
                     }
+                    self.sock.send_pyobj(result)
                     self.final_result.append(result)
                     if opt.save_img or opt.save_video or opt.vis:
                         img = vis_frame(orig_img, result)
